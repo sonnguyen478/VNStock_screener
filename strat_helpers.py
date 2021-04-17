@@ -11,10 +11,11 @@ FROM_EMAIL = "sonnguyen478@gmail.com"
 PASS_EMAIL = os.environ.get('PASS_EMAIL')
 TO_EMAIL = "sonnguyen478@gmail.com"
 
-SLACK_API = "https://hooks.slack.com/services/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"
+SLACK_API = ""
 
 
 def post_message_to_slack(text, blocks = None):
+    fconf['slack_token'] = os.environ.get('slack_token', '')
     return requests.post('https://slack.com/api/chat.postMessage', {
         'token': fconf['slack_token'],
         'channel': fconf['slack_channel'],
@@ -28,6 +29,7 @@ def post_message_to_slack(text, blocks = None):
 def post_file_to_slack(slack_channel,
   message, chart_title, file, file_type=None
 ):
+    fconf['slack_token'] = os.environ.get('slack_token', '')
     return requests.post(
       'https://slack.com/api/files.upload', 
       {
