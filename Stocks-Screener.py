@@ -1,6 +1,7 @@
 import os
 import json
 import sys
+import glob
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -16,7 +17,6 @@ from pandas import ExcelWriter
 from IPython.core.display import display, HTML
 
 # import custom lib
-sys.path.insert(0, '/Users/sonnguyen/Downloads/trading_bot/analysis_code/')
 from strat_configs import fconf
 import strat_helpers
 importlib.reload(strat_helpers)
@@ -34,7 +34,7 @@ import urllib.request
 import os,sys,requests,csv
 from bs4 import BeautifulSoup
 
-dir_path = '/Users/sonnguyen/Downloads/CafeF/'
+dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),'CafeF/')
 
 # check for download directory existence; create if not there
 if not os.path.isdir(dir_path):
@@ -51,15 +51,20 @@ soup = BeautifulSoup(r.content, "html.parser")
 # lookup new date for download the data
 # upto_date = '20210311'
 today = datetime.now().strftime('%Y%m%d')
-latest_date = (max([datetime.strptime(f.split('Upto')[1].split('.csv')[0].replace('.',''),"%d%m%Y") 
-     for f in os.listdir(dir_path) if 'CafeF.HSX.Upto' in f]))
-upto_date = ((latest_date + timedelta(days=1)) if latest_date.strftime('%A') != "Friday" 
-            else (latest_date + timedelta(days=(8-latest_date.isoweekday()))))
-upto_date = upto_date.strftime('%Y%m%d')
-input_date_lst = [upto_date, today] if today not in upto_date else [upto_date]
+# check data folder is empty
+if len(list(glob.glob(os.path.join(dir_path, '*')))) == 0:
+	latest_date = datetime.now() + timedelta(days=(5-datetime.now().isoweekday()))
+	input_date_lst = [latest_date.strftime('%Y%m%d')]
+else:
+	latest_date = (max([datetime.strptime(f.split('Upto')[1].split('.csv')[0].replace('.',''),"%d%m%Y") 
+	     for f in os.listdir(dir_path) if 'CafeF.HSX.Upto' in f]))
+	upto_date = ((latest_date + timedelta(days=1)) if latest_date.strftime('%A') != "Friday" 
+	            else (latest_date + timedelta(days=(8-latest_date.isoweekday()))))
+	upto_date = upto_date.strftime('%Y%m%d')
+	input_date_lst = [upto_date, today] if today not in upto_date else [upto_date]
 print(input_date_lst)
 do_logging(json.dumps(input_date_lst))
-outputFilename='/Users/sonnguyen/Downloads/CafeF/'
+outputFilename=dir_path
 
 keywords = ['Upto 3 sàn (điều chỉnh)', 'Upto Cung cầu & Khối ngoại']
 for upto_date in input_date_lst:
@@ -223,8 +228,8 @@ for upto_date in input_date_lst:
 
                 if(cond_1 and cond_2 and cond_3 and cond_4 and cond_5 and cond_6 and cond_7):# and cond_8):
                     exportList = exportList.append({'Stock': stock, "Curr Close": currentClose, "50 Day MA": moving_average_50, "150 Day Ma": moving_average_150, "200 Day MA": moving_average_200, "52 Week Low": low_of_52week, "52 week High": high_of_52week}, ignore_index=True)
-            except Exception:
-                print(Exception)
+            except Exception as e:
+                print(e)
                 print("No data on "+stock)
                 do_logging("No data on {}".format(stock))
 
@@ -261,9 +266,4 @@ for upto_date in input_date_lst:
             except:
                 print('No data on ', stock)
                 do_logging("No data on {}".format(stock))
-
-
-
-
-
 
