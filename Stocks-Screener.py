@@ -50,18 +50,18 @@ soup = BeautifulSoup(r.content, "html.parser")
 #############################################################################
 # lookup new date for download the data
 # upto_date = '20210311'
-today = datetime.now().strftime('%Y%m%d')
+today = (datetime.now().strftime('%Y%m%d') if datetime.now().strftime('%A') != "Saturday" and datetime.now().strftime('%A') != "Sunday" 
+            else (datetime.now() + timedelta(days=(5-datetime.now().isoweekday()))).strftime('%Y%m%d'))    
 # check data folder is empty
 if len(list(glob.glob(os.path.join(dir_path, '*')))) == 0:
-	latest_date = datetime.now() + timedelta(days=(5-datetime.now().isoweekday()))
-	input_date_lst = [latest_date.strftime('%Y%m%d')]
+	input_date_lst = [today]
 else:
 	latest_date = (max([datetime.strptime(f.split('Upto')[1].split('.csv')[0].replace('.',''),"%d%m%Y") 
 	     for f in os.listdir(dir_path) if 'CafeF.HSX.Upto' in f]))
 	upto_date = ((latest_date + timedelta(days=1)) if latest_date.strftime('%A') != "Friday" 
 	            else (latest_date + timedelta(days=(8-latest_date.isoweekday()))))
 	upto_date = upto_date.strftime('%Y%m%d')
-	input_date_lst = [upto_date, today] if today not in upto_date else [upto_date]
+	input_date_lst = list(set([upto_date, today]))
 print(input_date_lst)
 do_logging(json.dumps(input_date_lst))
 outputFilename=dir_path
