@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# data folder
+CafeF/*
+tmp.jpg
+
 # C extensions
 *.so
 

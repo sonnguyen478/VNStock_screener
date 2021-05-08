@@ -134,10 +134,10 @@ for upto_date in input_date_lst:
             pd_01.columns = ['Stock', 'Date','Open','High','Low','Close', 'Volume']
             pd_01.loc[:,'Date'] = pd.to_datetime(pd_01['Date'].astype(str),format= '%Y%m%d', errors='ignore')
             pd_01.loc[:, 'RS Rating'] = 99
-            pd_01['Open'] = pd_01['Open'].astype(int)*1000
-            pd_01['High'] = pd_01['High'].astype(int)*1000
-            pd_01['Close'] = pd_01['Close'].astype(int)*1000
-            pd_01['Low'] = pd_01['Low'].astype(int)*1000
+            pd_01['Open'] = (pd_01['Open']*1000).astype(int)
+            pd_01['High'] = (pd_01['High']*1000).astype(int)
+            pd_01['Close'] = (pd_01['Close']*1000).astype(int)
+            pd_01['Low'] = (pd_01['Low']*1000).astype(int)
 
             return pd_01
 
