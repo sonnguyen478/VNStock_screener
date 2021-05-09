@@ -262,7 +262,7 @@ for upto_date in input_date_lst:
                 fig1 = plot_Resistance_line(df, stock, datetime(2018,1,1), log_scale=False,use_input_df=True, plot_show=False)
                 send_image_to_slack(fig1, fconf['slack_channel'], 'Resistance line')
                 fig1 = plot_OHLC_candle(df, stock, datetime(2020,1,1),use_input_df=True, plot_show=False)
-                send_image_to_slack(fig1, fconf['slack_channel'], 'Candle chart')
+                send_image_to_slack(fig1, fconf['slack_channel'], 'Candle chart', dpi=400)
             except:
                 print('No data on ', stock)
                 do_logging("No data on {}".format(stock))

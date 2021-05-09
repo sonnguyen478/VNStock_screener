@@ -74,6 +74,76 @@ def plot_Resistance_line(df, stock, start, log_scale=True, use_input_df=False, p
     return fig
 
 
+def compute_Green_Dot(df, stock, start, log_scale=True, use_input_df=False):
+    try:
+        if use_input_df==True:
+            prices = df[df.index >= start.strftime('%Y-%m-%d')]
+        else:
+            prices = pdr.get_data_yahoo(stock, start, datetime.now()) #Fetches stock price data, saves as data frame
+    except Exception:
+        prices = df[df.index >= start.strftime('%Y-%m-%d')]
+
+
+    #Calculate moving averages
+    smasUsed=[10,30,50] #Choose smas
+    for sma in smasUsed: #This for loop calculates the SMAs for the stated periods and appends to dataframe
+        prices.loc[:,'SMA_'+str(sma)] = prices['Close'].rolling(window=sma).mean() #calcaulates sma and creates col
+
+    #calculate Bollinger Bands
+    BBperiod=15 #choose moving avera
+    stdev=2
+    prices.loc[:,'SMA'+str(BBperiod)] = prices['Close'].rolling(window=BBperiod).mean() #calculates sma and creates a column in the dataframe
+    prices.loc[:,'STDEV']=prices['Close'].rolling(window=BBperiod).std() #calculates standard deviation and creates col
+    prices.loc[:,'LowerBand']= prices['SMA'+str(BBperiod)]-(stdev*prices['STDEV']) #calculates lower bollinger band
+    prices['LowerBand'] = prices['LowerBand'].apply(lambda x: 0 if x <0 else x)
+    prices.loc[:,'UpperBand']=prices['SMA'+str(BBperiod)]+(stdev*prices['STDEV']) #calculates upper band
+
+
+
+    #Calculate 10.4.4 stochastic
+    Period=10 #Choose stoch period
+    K=4 # Choose K parameter
+    D=4 # choose D parameter
+    prices.loc[:,"RolHigh"] = prices["High"].rolling(window=Period).max() #Finds high of period
+    prices.loc[:,"RolLow"] = prices["Low"].rolling(window=Period).min() #finds low of period
+    prices.loc[:,"stok"] = ((prices["Close"]-prices["RolLow"])/(prices["RolHigh"]-prices["RolLow"]))*100 #Finds 10.1 stoch
+    prices.loc[:,"K"] = prices["stok"].rolling(window=K).mean() #Finds 10.4 stoch
+    prices.loc[:,"D"] = prices["K"].rolling(window=D).mean() #Finds 10.4.4 stoch
+    prices.loc[:,"GD"]= 0 #Create GD column to store green dots
+    prices.loc[:,"BD"]= 0 #Create GD column to store green dots
+    ohlc = [] #Create OHLC array which will store price data for the candlestick chart
+
+    greenDotDate=[] #Stores dates of Green Dots
+    greenDot=[] #Stores Values of Green Dots
+    lastK=0 # Will store yesterday's fast stoch
+    lastD=0 #will store yseterdays slow stoch
+    lastLow=0 #will store yesterdays lower
+    lastClose=0 #will store yesterdays close
+    lastLowBB=0 # will store yesterdats lower bband
+
+
+    #Go through price history to create candlestics and GD+Blue dots
+    for i in prices.index: 
+        #Check for Green Dot
+        if prices['K'][i]>prices['D'][i] and lastK<lastD and lastK <60:
+            prices.loc[i, 'GD'] = 1
+            greenDotDate.append(i) #store green dot date
+            greenDot.append(prices["High"][i])  #store green dot value
+
+        #Check for Lower Bollinger Band Bounce
+        if ((lastLow<lastLowBB) or (prices['Low'][i]<prices['LowerBand'][i])) and (prices['Close'][i]>lastClose and prices['Close'][i]>prices['LowerBand'][i]) and lastK <60:  
+            prices.loc[i, 'BD'] = 1
+
+        #store values
+        lastK=prices['K'][i]
+        lastD=prices['D'][i]
+        lastLow=prices['Low'][i]
+        lastClose=prices['Close'][i]
+        lastLowBB=prices['LowerBand'][i]
+
+    return prices
+
+
 def plot_OHLC_candle(df, stock, start, log_scale=True, use_input_df=False, plot_show=True):
     try:
         if use_input_df==True:

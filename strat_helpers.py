@@ -42,8 +42,8 @@ def post_file_to_slack(slack_channel,
       },files={'file': file}).json()
 
 
-def send_image_to_slack(fig, channel, chart_title, msg=""):
-    fig.savefig('tmp.jpg')
+def send_image_to_slack(fig, channel, chart_title, msg="", dpi=100):
+    fig.savefig('tmp.jpg', dpi)
     with open('tmp.jpg', 'rb') as img:
         post_file_to_slack(channel, msg, chart_title, file=img, file_type='jpg')
 
