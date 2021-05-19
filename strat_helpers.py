@@ -1,4 +1,5 @@
 import os
+import glob
 import logging
 import smtplib
 from email.message import EmailMessage
@@ -12,6 +13,20 @@ PASS_EMAIL = os.environ.get('PASS_EMAIL')
 TO_EMAIL = "sonnguyen478@gmail.com"
 
 SLACK_API = ""
+
+
+def delete_file(file_path):
+    try:
+        os.remove(file_path)
+    except OSError as e:
+        print("Error: %s : %s" % (file_path, e.strerror))
+
+
+def delete_file_by_date(dir_path, upto_date = 'all'):
+    all_files = list(glob.glob(os.path.join(dir_path, '*')))
+    for f in all_files:
+        if upto_date not in f:
+            delete_file(f)
 
 
 def post_message_to_slack(text, blocks = None):

@@ -61,12 +61,12 @@ else:
 	upto_date = ((latest_date + timedelta(days=1)) if latest_date.strftime('%A') != "Friday" 
 	            else (latest_date + timedelta(days=(8-latest_date.isoweekday()))))
 	upto_date = upto_date.strftime('%Y%m%d')
-	input_date_lst = list(set([upto_date, today]))
+	input_date_lst = sorted(list(set([upto_date, today])))
 print(input_date_lst)
 do_logging(json.dumps(input_date_lst))
 outputFilename=dir_path
 
-keywords = ['Upto 3 sàn (điều chỉnh)', 'Upto Cung cầu & Khối ngoại']
+keywords = ['Upto 3 sàn (điều chỉnh)', 'Upto 3 sàn (chưa điều chỉnh)', 'Upto Cung cầu & Khối ngoại']
 for upto_date in input_date_lst:
     is_existed = False
     is_found = False
@@ -118,9 +118,10 @@ for upto_date in input_date_lst:
         post_message_to_slack("Stock data is upto date") 
         do_logging('Stock data is upto date')             
     else:
+        # delete old data and keep only the latest date
+        strat_helpers.delete_file_by_date(dir_path, datetime.strptime(upto_date,'%Y%m%d').strftime('%d.%m.%Y'))
         post_message_to_slack("Finish download and extract new data")
         do_logging('Finish download and extract new data') 
-
 
         #############################################################################
         # Load latest stock price
@@ -133,7 +134,7 @@ for upto_date in input_date_lst:
             pd_01 = pd.read_csv(fpath)
             pd_01.columns = ['Stock', 'Date','Open','High','Low','Close', 'Volume']
             pd_01.loc[:,'Date'] = pd.to_datetime(pd_01['Date'].astype(str),format= '%Y%m%d', errors='ignore')
-            pd_01.loc[:, 'RS Rating'] = 99
+            # pd_01.loc[:, 'RS Rating'] = 99
             pd_01['Open'] = (pd_01['Open']*1000).astype(int)
             pd_01['High'] = (pd_01['High']*1000).astype(int)
             pd_01['Close'] = (pd_01['Close']*1000).astype(int)
@@ -145,7 +146,7 @@ for upto_date in input_date_lst:
         pd_02 = read_stock_file(os.path.join(dir_path, HNX_latest_fname))
         pd_03 = read_stock_file(os.path.join(dir_path, UPCOM_latest_fname))
         pd_01 = pd.concat([pd_01, pd_02, pd_03]).drop_duplicates()
-        stocklist = pd_01[['Stock','RS Rating']].drop_duplicates()
+        # stocklist = pd_01[['Stock','RS Rating']].drop_duplicates()
         stocklist = pd_01[['Stock']].drop_duplicates()
         print('Number of stock:', stocklist.shape[0])
         print(pd_01.shape)
@@ -159,7 +160,7 @@ for upto_date in input_date_lst:
         start =datetime(2017,12,1)
         for i in tqdm(stocklist.index):
             stock=str(stocklist["Stock"][i])
-            RS_Rating=90#stocklist["RS Rating"][i]
+            # RS_Rating=90#stocklist["RS Rating"][i]
 
             try:
         #         df = pdr.get_data_yahoo(stock, start, datetime.now())
@@ -266,4 +267,5 @@ for upto_date in input_date_lst:
             except:
                 print('No data on ', stock)
                 do_logging("No data on {}".format(stock))
+
 
