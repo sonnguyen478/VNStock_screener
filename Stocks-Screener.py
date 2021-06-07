@@ -49,24 +49,28 @@ soup = BeautifulSoup(r.content, "html.parser")
 
 #############################################################################
 # lookup new date for download the data
-# upto_date = '20210311'
-today = (datetime.now().strftime('%Y%m%d') if datetime.now().strftime('%A') != "Saturday" and datetime.now().strftime('%A') != "Sunday" 
-            else (datetime.now() + timedelta(days=(5-datetime.now().isoweekday()))).strftime('%Y%m%d'))    
+prev_weekday = ((datetime.now()+timedelta(days=-1)).strftime('%Y%m%d') if datetime.now().strftime('%A') != "Saturday" and datetime.now().strftime('%A') != "Sunday" 
+            else (datetime.now() + timedelta(days=(5-datetime.now().isoweekday()))).strftime('%Y%m%d'))
+latest_weekday = (datetime.now().strftime('%Y%m%d') if datetime.now().strftime('%A') != "Saturday" and datetime.now().strftime('%A') != "Sunday" 
+            else (datetime.now() + timedelta(days=(5-datetime.now().isoweekday()))).strftime('%Y%m%d'))
+zip_lst = [f for f in os.listdir(dir_path) if 'CafeF.HSX.Upto' in f]
 # check data folder is empty
-if len(list(glob.glob(os.path.join(dir_path, '*')))) == 0:
-	input_date_lst = [today]
-else:
-	latest_date = (max([datetime.strptime(f.split('Upto')[1].split('.csv')[0].replace('.',''),"%d%m%Y") 
-	     for f in os.listdir(dir_path) if 'CafeF.HSX.Upto' in f]))
-	upto_date = ((latest_date + timedelta(days=1)) if latest_date.strftime('%A') != "Friday" 
-	            else (latest_date + timedelta(days=(8-latest_date.isoweekday()))))
-	upto_date = upto_date.strftime('%Y%m%d')
-	input_date_lst = sorted(list(set([upto_date, today])))
+input_date_lst = sorted(list(set([latest_weekday, prev_weekday])), reverse=True)
+# if len(zip_lst) == 0:
+# 	input_date_lst = [latest_weekday]
+# elif datetime.now().strftime('%A') != "Saturday" and datetime.now().strftime('%A') != "Sunday":
+# 	latest_date = (max([datetime.strptime(f.split('Upto')[1].split('.csv')[0].replace('.',''),"%d%m%Y") 
+# 	     for f in os.listdir(dir_path) if 'CafeF.HSX.Upto' in f]))
+# 	upto_date = ((latest_date + timedelta(days=1)) if latest_date.strftime('%A') != "Friday" 
+# 	            else (latest_date + timedelta(days=(8-latest_date.isoweekday()))))
+# 	upto_date = upto_date.strftime('%Y%m%d')
+# 	input_date_lst = sorted(list(set([latest_weekday, upto_date, today])), reverse=True)
 print(input_date_lst)
 do_logging(json.dumps(input_date_lst))
 outputFilename=dir_path
 
 keywords = ['Upto 3 sàn (điều chỉnh)', 'Upto 3 sàn (chưa điều chỉnh)', 'Upto Cung cầu & Khối ngoại']
+keywords = ['Upto 3 sàn (chưa điều chỉnh)']
 for upto_date in input_date_lst:
     is_existed = False
     is_found = False
@@ -114,9 +118,14 @@ for upto_date in input_date_lst:
                         post_message_to_slack("Extracting {}".format(zipname))
                         zip_ref.extractall(outputFilename)
 
-    if is_existed or not is_found:
+    if is_existed:
         post_message_to_slack("Stock data is upto date") 
-        do_logging('Stock data is upto date')             
+        do_logging('Stock data is upto date')
+        break
+    elif not is_found:
+        post_message_to_slack("No new stock data is found") 
+        do_logging('No new stock data is found')
+        continue
     else:
         # delete old data and keep only the latest date
         strat_helpers.delete_file_by_date(dir_path, datetime.strptime(upto_date,'%Y%m%d').strftime('%d.%m.%Y'))
@@ -125,9 +134,9 @@ for upto_date in input_date_lst:
 
         #############################################################################
         # Load latest stock price
-        HSX_latest_fname = 'CafeF.HSX.Upto{}.csv'.format(datetime.strptime(upto_date, "%Y%m%d").strftime("%d.%m.%Y"))
-        HNX_latest_fname = 'CafeF.HNX.Upto{}.csv'.format(datetime.strptime(upto_date, "%Y%m%d").strftime("%d.%m.%Y"))
-        UPCOM_latest_fname = 'CafeF.UPCOM.Upto{}.csv'.format(datetime.strptime(upto_date, "%Y%m%d").strftime("%d.%m.%Y"))
+        HSX_latest_fname = 'CafeF.RAW_HSX.Upto{}.csv'.format(datetime.strptime(upto_date, "%Y%m%d").strftime("%d.%m.%Y"))
+        HNX_latest_fname = 'CafeF.RAW_HNX.Upto{}.csv'.format(datetime.strptime(upto_date, "%Y%m%d").strftime("%d.%m.%Y"))
+        UPCOM_latest_fname = 'CafeF.RAW_UPCOM.Upto{}.csv'.format(datetime.strptime(upto_date, "%Y%m%d").strftime("%d.%m.%Y"))
         print(HSX_latest_fname, HNX_latest_fname, UPCOM_latest_fname)
 
         def read_stock_file(fpath):
@@ -267,5 +276,7 @@ for upto_date in input_date_lst:
             except:
                 print('No data on ', stock)
                 do_logging("No data on {}".format(stock))
+        # break the loop in case data is found
+        break
 
 
